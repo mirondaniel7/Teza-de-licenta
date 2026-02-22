@@ -1,0 +1,260 @@
+services:
+  # Redis for cart service
+  redis-cart:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+    networks:
+      - online-boutique
+
+  # Email Service (Python)
+  emailservice:
+    build:
+      context: ./src/emailservice
+      dockerfile: Dockerfile
+    ports:
+      - "5000:8080"
+    environment:
+      - PORT=8080
+      - DISABLE_PROFILER=1
+    networks:
+      - online-boutique
+    depends_on:
+      - redis-cart
+
+  # Recommendation Service (Python)
+  recommendationservice:
+    build:
+      context: ./src/recommendationservice
+      dockerfile: Dockerfile
+    ports:
+      - "8082:8080"
+    environment:
+      - PORT=8080
+      - PRODUCT_CATALOG_SERVICE_ADDR=productcatalogservice:3550
+      - DISABLE_PROFILER=1
+    networks:
+      - online-boutique
+    depends_on:
+      - productcatalogservice
+
+  # Product Catalog Service (Go)
+  productcatalogservice:
+    build:
+      context: ./src/productcatalogservice
+      dockerfile: Dockerfile
+    ports:
+      - "3550:3550"
+    environment:
+      - PORT=3550
+      - DISABLE_PROFILER=1
+    networks:
+      - online-boutique
+
+  # Payment Service (Node.js)
+  paymentservice:
+    build:
+      context: ./src/paymentservice
+      dockerfile: Dockerfile
+    ports:
+      - "50051:50051"
+    environment:
+      - PORT=50051
+      - DISABLE_PROFILER=1
+    networks:
+      - online-boutique
+
+  # Currency Service (Node.js)
+  currencyservice:
+    build:
+      context: ./src/currencyservice
+      dockerfile: Dockerfile
+    ports:
+      - "7000:7000"
+    environment:
+      - PORT=7000
+      - DISABLE_PROFILER=1
+    networks:
+      - online-boutique
+
+  # Shipping Service (Go)
+  shippingservice:
+    build:
+      context: ./src/shippingservice
+      dockerfile: Dockerfile
+    ports:
+      - "50052:50051"
+    environment:
+      - PORT=50051
+      - DISABLE_PROFILER=1
+    networks:
+      - online-boutique
+
+  # Ad Service (Java)
+  adservice:
+    build:
+      context: ./src/adservice
+      dockerfile: Dockerfile
+    ports:
+      - "9555:9555"
+    environment:
+      - PORT=9555
+    networks:
+      - online-boutique
+
+  # Shopping Assistant Service (Python)
+  shoppingassistantservice:
+    build:
+      context: ./src/shoppingassistantservice
+      dockerfile: Dockerfile
+    ports:
+      - "8083:80"
+    environment:
+      - PORT=80
+      - PRODUCT_CATALOG_SERVICE_ADDR=productcatalogservice:3550
+      - AI_INFERENCE_URL=http://ai-inference:8000
+    networks:
+      - online-boutique
+    depends_on:
+      - productcatalogservice
+      - ai-inference
+
+  # Cart Service (C#)
+  cartservice:
+    build:
+      context: ./src/cartservice/src
+      dockerfile: Dockerfile
+    ports:
+      - "7070:7070"
+    environment:
+      - REDIS_ADDR=redis-cart:6379
+    networks:
+      - online-boutique
+    depends_on:
+      - redis-cart
+
+  # Checkout Service (Go)
+  checkoutservice:
+    build:
+      context: ./src/checkoutservice
+      dockerfile: Dockerfile
+    ports:
+      - "5050:5050"
+    environment:
+      - PORT=5050
+      - PRODUCT_CATALOG_SERVICE_ADDR=productcatalogservice:3550
+      - SHIPPING_SERVICE_ADDR=shippingservice:50051
+      - PAYMENT_SERVICE_ADDR=paymentservice:50051
+      - EMAIL_SERVICE_ADDR=emailservice:8080
+      - CURRENCY_SERVICE_ADDR=currencyservice:7000
+      - CART_SERVICE_ADDR=cartservice:7070
+    networks:
+      - online-boutique
+    depends_on:
+      - productcatalogservice
+      - shippingservice
+      - paymentservice
+      - emailservice
+      - currencyservice
+      - cartservice
+
+  # Frontend (Go)
+  frontend:
+    build:
+      context: ./src/frontend
+      dockerfile: Dockerfile
+    ports:
+      - "8081:8080"
+    environment:
+      - PORT=8080
+      - PRODUCT_CATALOG_SERVICE_ADDR=productcatalogservice:3550
+      - CURRENCY_SERVICE_ADDR=currencyservice:7000
+      - CART_SERVICE_ADDR=cartservice:7070
+      - RECOMMENDATION_SERVICE_ADDR=recommendationservice:8080
+      - SHIPPING_SERVICE_ADDR=shippingservice:50051
+      - CHECKOUT_SERVICE_ADDR=checkoutservice:5050
+      - AD_SERVICE_ADDR=adservice:9555
+      - SHOPPING_ASSISTANT_SERVICE_ADDR=shoppingassistantservice:80
+      - ENABLE_ASSISTANT=true
+      - ENABLE_PROFILER=0
+    networks:
+      - online-boutique
+    depends_on:
+      - productcatalogservice
+      - currencyservice
+      - cartservice
+      - recommendationservice
+      - shippingservice
+      - checkoutservice
+      - adservice
+      - shoppingassistantservice
+
+  # Load Generator (Python/Locust)
+  loadgenerator:
+    build:
+      context: ./src/loadgenerator
+      dockerfile: Dockerfile
+    environment:
+      - FRONTEND_ADDR=frontend:8080
+      - USERS=10
+    networks:
+      - online-boutique
+    depends_on:
+      - frontend
+
+  # Ollama LLM Service
+  ollama:
+    build:
+      context: ./src/ollama-custom
+      dockerfile: Dockerfile
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    networks:
+      - online-boutique
+    environment:
+      - OLLAMA_VULKAN=1
+      - OLLAMA_GPU_OVERHEAD=0
+      - OLLAMA_NUM_PARALLEL=1
+      - OLLAMA_LOAD_TIMEOUT=5m0s
+
+  # AI Inference Service (FastAPI)
+  ai-inference:
+    build:
+      context: ./src/ollama-connect
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - OLLAMA_URL=http://ollama:11434
+      # VISION TESTING: using llava model
+      # SWITCH BACK TO TEXT: change to OLLAMA_MODEL=llama3.1
+      - OLLAMA_MODEL=llava
+      - OLLAMA_MAX_TOKENS=16384
+      - OLLAMA_TIMEOUT=90
+    networks:
+      - online-boutique
+    depends_on:
+      - ollama
+
+  # Chat UI (Streamlit)
+  chat-ui:
+    build:
+      context: ./src/chat-ollama
+      dockerfile: Dockerfile
+    ports:
+      - "8501:8501"
+    environment:
+      - API_URL=http://ai-inference:8000
+    networks:
+      - online-boutique
+    depends_on:
+      - ai-inference
+
+networks:
+  online-boutique:
+    driver: bridge
+
+volumes:
+  ollama_data:
