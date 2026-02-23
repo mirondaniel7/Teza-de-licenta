@@ -8,10 +8,23 @@ import uuid
 import shutil
 import mimetypes
 from typing import Optional
+import time
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 
 app = FastAPI()
 
+# Configure session with retry logic and exponential backoff
 SESSION = requests.Session()
+retry_strategy = Retry(
+    total=3,
+    backoff_factor=1,  # Will retry with 1s, 2s, 4s delays
+    status_forcelist=[429, 500, 502, 503, 504],
+    allowed_methods=["POST", "GET"]
+)
+adapter = HTTPAdapter(max_retries=retry_strategy)
+SESSION.mount("http://", adapter)
+SESSION.mount("https://", adapter)
 
 # Allow uploads up to 2 GiB by default. This checks Content-Length and streams to disk.
 MAX_UPLOAD_BYTES = 2 * 1024 * 1024 * 1024  # 2 GiB
@@ -38,6 +51,34 @@ OLLAMA_MODEL = _required_env("OLLAMA_MODEL")
 DEFAULT_MAX_TOKENS = _required_env_int("OLLAMA_MAX_TOKENS")
 DEFAULT_TIMEOUT = _required_env_int("OLLAMA_TIMEOUT")
 
+
+def _call_ollama_with_retry(url: str, json_data: dict, timeout: int, max_retries: int = 2) -> requests.Response:
+    """Call Ollama API with retry logic for timeout errors"""
+    last_error = None
+    for attempt in range(max_retries + 1):
+        try:
+            resp = SESSION.post(url, json=json_data, timeout=timeout)
+            return resp
+        except requests.exceptions.Timeout as e:
+            last_error = e
+            if attempt < max_retries:
+                wait_time = 2 ** attempt  # Exponential backoff: 1s, 2s, 4s
+                print(f"Timeout on attempt {attempt + 1}/{max_retries + 1}. Retrying in {wait_time}s...")
+                time.sleep(wait_time)
+            else:
+                print(f"Failed after {max_retries + 1} attempts")
+                raise
+        except requests.exceptions.ConnectionError as e:
+            last_error = e
+            if attempt < max_retries:
+                wait_time = 2 ** attempt
+                print(f"Connection error on attempt {attempt + 1}/{max_retries + 1}. Retrying in {wait_time}s...")
+                time.sleep(wait_time)
+            else:
+                raise
+    
+    raise last_error or Exception("Unknown error occurred")
+
 class ChatRequest(BaseModel):
     message: str
     image: Optional[str] = None  # Base64-encoded image with data URI prefix
@@ -54,20 +95,28 @@ def chat(req: ChatRequest):
 
 def _generate_response(prompt: str):
     """Generate response using Ollama's native API"""
-    resp = SESSION.post(
-        f"{OLLAMA_URL}/api/chat",
-        json={
-            "model": OLLAMA_MODEL,
-            "messages": [
-                {"role": "user", "content": prompt}
-            ],
-            "stream": False,
-            "options": {
-                "num_predict": DEFAULT_MAX_TOKENS
-            }
-        },
-        timeout=DEFAULT_TIMEOUT,
-    )
+    try:
+        resp = _call_ollama_with_retry(
+            f"{OLLAMA_URL}/api/chat",
+            {
+                "model": OLLAMA_MODEL,
+                "messages": [
+                    {"role": "user", "content": prompt}
+                ],
+                "stream": False,
+                "options": {
+                    "num_predict": DEFAULT_MAX_TOKENS
+                }
+            },
+            timeout=DEFAULT_TIMEOUT,
+            max_retries=2
+        )
+    except (requests.exceptions.Timeout, requests.exceptions.ConnectionError) as e:
+        return {
+            "response": f"Error: Ollama service is not responding (timeout). "
+                       f"This usually means the service is still starting up or overloaded. "
+                       f"Please wait a moment and try again. Details: {str(e)}"
+        }
 
     if resp.status_code != 200:
         try:
@@ -125,24 +174,32 @@ def _generate_vision_response(prompt: str, image_data: str):
     else:
         base64_image = image_data
     
-    resp = SESSION.post(
-        f"{OLLAMA_URL}/api/chat",
-        json={
-            "model": "llava",  # Use vision model
-            "messages": [
-                {
-                    "role": "user",
-                    "content": prompt,
-                    "images": [base64_image]  # Ollama expects base64 without data URI prefix
+    try:
+        resp = _call_ollama_with_retry(
+            f"{OLLAMA_URL}/api/chat",
+            {
+                "model": "llava",  # Use vision model
+                "messages": [
+                    {
+                        "role": "user",
+                        "content": prompt,
+                        "images": [base64_image]  # Ollama expects base64 without data URI prefix
+                    }
+                ],
+                "stream": False,
+                "options": {
+                    "num_predict": DEFAULT_MAX_TOKENS
                 }
-            ],
-            "stream": False,
-            "options": {
-                "num_predict": DEFAULT_MAX_TOKENS
-            }
-        },
-        timeout=DEFAULT_TIMEOUT,
-    )
+            },
+            timeout=DEFAULT_TIMEOUT,
+            max_retries=2
+        )
+    except (requests.exceptions.Timeout, requests.exceptions.ConnectionError) as e:
+        return {
+            "response": f"Error: Vision service is not responding. "
+                       f"This usually means the service is still loading the model. "
+                       f"Please wait a moment and try again. Details: {str(e)}"
+        }
 
     if resp.status_code != 200:
         try:

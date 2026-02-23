@@ -11,6 +11,7 @@ from flask import Flask, request, jsonify
 import grpc
 import demo_pb2
 import demo_pb2_grpc
+import time
 
 # Configuration from environment
 AI_INFERENCE_URL = os.environ.get("AI_INFERENCE_URL", "http://ai-inference:8000")
@@ -46,7 +47,7 @@ def chat_with_ollama(message, image=None):
         response = requests.post(
             f"{AI_INFERENCE_URL}/chat",
             json=payload,
-            timeout=90
+            timeout=180
         )
         if response.status_code == 200:
             data = response.json()
@@ -64,6 +65,7 @@ def create_app():
     def assistant_chat():
         """Handle chat requests from the frontend"""
         try:
+            start_time = time.time()
             print("Shopping Assistant request received")
             
             # Get the user's message and optional image
@@ -79,12 +81,14 @@ def create_app():
                 print("Image detected - using vision model")
             
             # Get all products from catalog
+            catalog_start = time.time()
             products = get_all_products()
-            print(f"Retrieved {len(products)} products from catalog")
+            catalog_time = time.time() - catalog_start
+            print(f"Retrieved {len(products)} products from catalog in {catalog_time:.2f}s")
             
             # Build a context with product information
             product_context = "Here are the available products in our store:\n\n"
-            for i, product in enumerate(products[:20], 1):  # Limit to 20 products to avoid token limit
+            for i, product in enumerate(products[:5], 1):  # Limit to 5 products for faster responses
                 product_context += f"{i}. {product['name']} (ID: {product['id']})\n"
                 product_context += f"   Description: {product['description']}\n"
                 product_context += f"   Price: {product['price']}\n"
@@ -115,10 +119,14 @@ Please provide helpful recommendations. If you recommend specific products, incl
 Be friendly, helpful, and concise. Focus on products that best match what the customer is looking for."""
 
             print("Sending request to AI service...")
+            ai_start = time.time()
             
             # Get response from Ollama via AI inference service
             ai_response = chat_with_ollama(full_prompt, user_image)
+            ai_time = time.time() - ai_start
             
+            total_time = time.time() - start_time
+            print(f"AI Response in {ai_time:.2f}s. Total request time: {total_time:.2f}s")
             print(f"AI Response: {ai_response[:200]}...")  # Log first 200 chars
             
             # Return the response in the format expected by the frontend
