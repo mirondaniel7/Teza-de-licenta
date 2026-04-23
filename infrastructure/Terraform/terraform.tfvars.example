@@ -1,0 +1,38 @@
+# Example Terraform Variables File
+# Copy this to terraform.tfvars and update with your values
+
+project_id = "your-gcp-project-id"
+region     = "us-central1"
+
+cluster_name = "microservices-demo"
+environment  = "dev"
+
+kubernetes_version = "1.27"
+
+# Network configuration
+network_ipv4_cidr             = "10.0.0.0/16"
+cluster_secondary_range_cidr  = "10.4.0.0/14"
+services_secondary_range_cidr = "10.8.0.0/20"
+
+# Node pool configuration
+initial_node_count = 3
+min_node_count     = 1
+max_node_count     = 5
+machine_type       = "n1-standard-2"
+disk_size_gb       = 50
+
+enable_autoscaling      = true
+enable_workload_identity = true
+enable_monitoring       = true
+enable_http_load_balancing = true
+enable_network_policy   = true
+
+# Maintenance window (UTC time)
+maintenance_window_start_time = "03:00"
+
+labels = {
+  environment = "dev"
+  managed-by  = "terraform"
+  project     = "microservices-demo"
+  owner       = "platform-team"
+}
