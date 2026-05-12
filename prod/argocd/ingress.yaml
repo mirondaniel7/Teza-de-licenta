@@ -1,0 +1,49 @@
+# apiVersion: networking.k8s.io/v1
+# kind: Ingress
+# metadata:
+#   name: argocd-server
+#   namespace: argocd
+#   annotations:
+#     cert-manager.io/cluster-issuer: letsencrypt
+#     kubernetes.io/ingress.class: nginx
+#     nginx.ingress.kubernetes.io/rewrite-target: /
+#     nginx.ingress.kubernetes.io/whitelist-source-range: >-
+#       89.149.101.148/32,85.238.112.34/32,5.161.217.52/32,49.13.11.180/32,10.244.5.1/32,35.156.238.32/32,89.149.103.68/32,188.245.92.154/32,128.140.92.146/32,116.203.253.187/32,213.133.98.141/32,168.119.177.107/32,159.69.177.140/32,188.245.82.191/32,77.89.211.114/32
+# spec:
+#   tls:
+#     - hosts:
+#         - argocd.mgaru.dev
+#       secretName: argocd-server-tls
+#   rules:
+#     - host: argocd.mgaru.dev
+#       http:
+#         paths:
+#           - path: /
+#             pathType: Prefix
+#             backend:
+#               service:
+#                 name: argocd-server
+#                 port:
+#                   number: 80
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: argocd-server
+  namespace: argocd
+  annotations:
+    ingress.kubernetes.io/ssl-redirect: "false"
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: argocd.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: argocd-server
+                port:
+                  number: 80
+

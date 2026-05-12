@@ -1,0 +1,20 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: online-boutique
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: 'https://github.com/mirondaniel7/Teza-de-licenta.git' # <-- IMPORTANT: Put your actual Git URL here!
+    targetRevision: main
+    path: prod
+  destination:
+    server: 'https://kubernetes.default.svc'
+    namespace: online-boutique
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

@@ -67,6 +67,38 @@ jobs:
           push: true
           tags: |
             ${{ steps.format_username.outputs.username }}/${{ matrix.service }}:latest
-            ${{ steps.format_username.outputs.username }}/${{ matrix.service }}:${{ github.sha }}
+            ${{ steps.format_username.outputs.username }}/${{ matrix.service }}:${{ github.sha }}-${{ github.run_id }}
           cache-from: type=registry,ref=${{ steps.format_username.outputs.username }}/${{ matrix.service }}:buildcache
           cache-to: type=registry,ref=${{ steps.format_username.outputs.username }}/${{ matrix.service }}:buildcache,mode=max
+
+  update-argocd-manifests:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          # Required to allow GitHub Actions to push commits back to the repo
+          token: ${{ secrets.GITHUB_TOKEN }} 
+
+      - name: Setup Kustomize
+        uses: imranismail/setup-kustomize@v2
+
+      - name: Update Image Tags with latest Commit SHA
+        run: |
+          cd prod
+          # Array of all our services
+          SERVICES=(adservice cartservice chat-ollama checkoutservice currencyservice emailservice frontend loadgenerator ollama-connect ollama-custom paymentservice productcatalogservice recommendationservice shippingservice shoppingassistantservice)
+          
+          # Replace the images in the kustomization.yaml to point to the new build hash + run ID
+          for SERVICE in "${SERVICES[@]}"; do
+            kustomize edit set image mirondaniel7/$SERVICE=mirondaniel7/$SERVICE:${{ github.sha }}-${{ github.run_id }}
+          done
+
+      - name: Commit and Push changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add prod/kustomization.yaml
+          git commit -m "Auto-update deployed images to version ${{ github.sha }}-${{ github.run_id }}" || echo "No changes to commit"
+          git push
