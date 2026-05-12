@@ -1,0 +1,61 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: ingress-traefik
+
+resources:
+  - traefik-cm.yaml
+  - namespace.yaml
+
+helmCharts:
+  - name: traefik
+    repo: https://traefik.github.io/charts
+    version: 39.0.8
+    releaseName: traefik
+    namespace: ingress-traefik
+    valuesFile: treafik-values.yaml
+    includeCRDs: false
+
+# Оборачиваем запуск traefik в sh-wrapper, сохраняя Helm-рендеренные args как
+# есть. Wrapper получает args через "$@" и у флагов
+# --entryPoints.{web,websecure}.address=:PORT[/PROTO] подставляет IP ноды из
+# /etc/node-ips/${NODE_NAME}.ipv4 → IP:PORT[/PROTO]. Остальные флаги проходят
+# без изменений, поэтому любые правки в values-cdp.yaml автоматически
+# подхватываются. command добавляется через op:add (Helm-чарт его не
+# рендерит), args не трогаем.
+patches:
+  - target:
+      kind: DaemonSet
+      name: traefik
+    patch: |-
+      - op: add
+        path: /spec/template/spec/containers/0/command
+        value:
+          - /bin/sh
+          - -ec
+          - |
+            IP4=$(cat /etc/node-ips/${NODE_NAME}.ipv4 2>/dev/null || true)
+            if [ -z "$IP4" ]; then
+              echo "ERROR: no IP mapping for node ${NODE_NAME}" >&2
+              echo "Available mappings:" >&2
+              ls -la /etc/node-ips/ >&2 || true
+              exit 1
+            fi
+            echo "Starting Traefik bound to ${IP4}"
+            COUNT=$#
+            i=0
+            while [ $i -lt $COUNT ]; do
+              arg="$1"
+              shift
+              case "$arg" in
+                --entryPoints.web.address=:*|--entryPoints.websecure.address=:*)
+                  name=${arg%%=*}
+                  addr=${arg#*=}
+                  arg="${name}=${IP4}${addr}"
+                  ;;
+              esac
+              set -- "$@" "$arg"
+              i=$((i+1))
+            done
+            exec /usr/local/bin/traefik "$@"
+          - traefik-wrapper

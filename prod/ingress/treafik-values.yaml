@@ -1,0 +1,736 @@
+# Default values for Traefik (adapted for per-node IP binding via wrapper-script in command)
+# Patched for Ivan's setup: DaemonSet on cdp-worker-01/02, hostNetwork, bind to node's public IP
+
+image:
+  registry: docker.io
+  repository: traefik
+  tag:
+  pullPolicy: IfNotPresent
+
+commonLabels: {}
+
+deployment:
+  enabled: true
+  kind: DaemonSet
+  replicas: 1
+  revisionHistoryLimit:
+  terminationGracePeriodSeconds: 60
+  minReadySeconds: 0
+  healthchecksPort:
+  healthchecksHost: ""
+  healthchecksScheme:
+  readinessPath: ""
+  livenessPath: ""
+  annotations: 
+    reloader.stakater.com/auto: "true"
+  labels: {}
+  podAnnotations: {}
+  podLabels: {}
+  additionalContainers: []
+
+  # <-- CHANGED: оставляем только node-ips, убираем shared-args и initContainer с get-node-ip.
+  # Wrapper-скрипт в command сам читает /etc/node-ips/<node>.ipv4 и подставляет в аргументы.
+  additionalVolumes:
+    - name: node-ips
+      configMap:
+        name: node-external-ips
+
+  # <-- CHANGED: initContainers больше не нужны
+  initContainers: []
+
+  shareProcessNamespace: false
+  dnsPolicy: ""
+  dnsConfig: {}
+  hostAliases: []
+  imagePullSecrets: []
+  lifecycle: {}
+  runtimeClassName: ""
+  goMemLimitPercentage: 0.9
+
+podDisruptionBudget:
+  enabled: false
+  maxUnavailable:
+  minAvailable:
+
+ingressClass:
+  enabled: true
+  isDefaultClass: true
+  name: ""
+
+core:
+  defaultRuleSyntax: ""
+
+experimental:
+  abortOnPluginFailure: false
+  fastProxy:
+    enabled: false
+    debug: false
+  kubernetesGateway:
+    enabled: false
+  plugins: {}
+  localPlugins: {}
+  otlpLogs: false
+  knative: false
+
+# <-- CHANGED: Gateway API выключен (не используем)
+gateway:
+  enabled: false
+  name: ""
+  namespace: ""
+  annotations: {}
+  infrastructure: {}
+  defaultScope: null
+  listeners:
+    web:
+      port: 8000
+      hostname: ""
+      protocol: HTTP
+      namespacePolicy:
+
+gatewayClass:
+  enabled: false
+  name: ""
+  labels: {}
+
+api:
+  dashboard: true
+  insecure:
+  debug:
+  basePath: ""
+
+ingressRoute:
+  dashboard:
+    enabled: false
+    annotations: {}
+    labels: {}
+    matchRule: PathPrefix(`/dashboard`) || PathPrefix(`/api`)
+    services:
+      - name: api@internal
+        kind: TraefikService
+    entryPoints: ["traefik"]
+    middlewares: []
+    tls: {}
+  healthcheck:
+    enabled: false
+    annotations: {}
+    labels: {}
+    matchRule: PathPrefix(`/ping`)
+    services:
+      - name: ping@internal
+        kind: TraefikService
+    entryPoints: ["traefik"]
+    middlewares: []
+    tls: {}
+
+updateStrategy:
+  type: RollingUpdate
+  rollingUpdate:
+    maxUnavailable: 1
+    maxSurge:
+
+readinessProbe:
+  failureThreshold: 1
+  initialDelaySeconds: 2
+  periodSeconds: 10
+  successThreshold: 1
+  timeoutSeconds: 2
+livenessProbe:
+  failureThreshold: 3
+  initialDelaySeconds: 2
+  periodSeconds: 10
+  successThreshold: 1
+  timeoutSeconds: 2
+
+startupProbe: {}
+
+providers:
+  kubernetesCRD:
+    enabled: true
+    allowCrossNamespace: false
+    allowExternalNameServices: false
+    allowEmptyServices: true
+    ingressClass: ""
+    labelSelector: ""
+    namespaces: []
+    nativeLBByDefault: false
+
+  kubernetesIngress:
+    enabled: true
+    allowExternalNameServices: false
+    allowEmptyServices: true
+    disableIngressClassLookup: false
+    ingressClass:
+    labelSelector:
+    namespaces: []
+    publishedService:
+      enabled: true
+      pathOverride: ""
+    nativeLBByDefault: false
+    strictPrefixMatching: false
+
+  kubernetesGateway:
+    enabled: false
+    experimentalChannel: false
+    namespaces: []
+    labelSelector: ""
+    nativeLBByDefault: false
+    statusAddress:
+      ip: ""
+      hostname: ""
+      service:
+        enabled: true
+        name: ""
+        namespace: ""
+
+  file:
+    enabled: false
+    watch: true
+    content: ""
+
+  kubernetesIngressNginx:
+    enabled: false
+    controllerClass: "k8s.io/ingress-nginx"
+    ingressClass: "nginx"
+    ingressClassByName: false
+    watchIngressWithoutClass: false
+    watchNamespace: ""
+    watchNamespaceSelector: ""
+    publishService:
+      enabled: false
+      pathOverride: ""
+    publishStatusAddress: ""
+    defaultBackendService: ""
+    disableSvcExternalName: false
+    throttleDuration: ""
+    certAuthFilePath: ""
+    endpoint: ""
+    token: ""
+
+  knative:
+    enabled: false
+    namespaces: []
+    labelSelector: ""
+
+volumes: []
+
+# <-- CHANGED: монтируем node-ips в основной traefik-контейнер (wrapper-скрипт читает отсюда)
+additionalVolumeMounts:
+  - name: node-ips
+    mountPath: /etc/node-ips
+    readOnly: true
+
+logs:
+  general:
+    format:
+    level: "DEBUG"
+    filePath: ""
+    noColor: false
+    otlp:
+      enabled: false
+      serviceName:
+      http:
+        enabled: false
+        endpoint: ""
+        headers: {}
+        tls:
+          ca: ""
+          cert: ""
+          key: ""
+          insecureSkipVerify:
+      grpc:
+        enabled: false
+        endpoint: ""
+        insecure: false
+        tls:
+          ca: ""
+          cert: ""
+          key: ""
+          insecureSkipVerify:
+      resourceAttributes: {}
+
+  access:
+    enabled: false
+    format:
+    bufferingSize:
+    timezone: ""
+    filters:
+      statuscodes: ""
+      retryattempts: false
+      minduration: ""
+    addInternals: false
+    fields:
+      general:
+        defaultmode: keep
+        names: {}
+      headers:
+        defaultmode: drop
+        names: {}
+    otlp:
+      enabled: false
+      serviceName:
+      http:
+        enabled: false
+        endpoint: ""
+        headers: {}
+        tls:
+          ca: ""
+          cert: ""
+          key: ""
+          insecureSkipVerify:
+      grpc:
+        enabled: false
+        endpoint: ""
+        insecure: false
+        tls:
+          ca: ""
+          cert: ""
+          key: ""
+          insecureSkipVerify:
+      resourceAttributes: {}
+
+metrics:
+  addInternals: false
+
+  prometheus:
+    entryPoint: metrics
+    addEntryPointsLabels:
+    addRoutersLabels:
+    addServicesLabels:
+    buckets: ""
+    manualRouting: false
+    headerLabels: {}
+    service:
+      enabled: false
+      labels: {}
+      annotations: {}
+    disableAPICheck:
+    serviceMonitor:
+      enabled: false
+      apiVersion: "monitoring.coreos.com/v1"
+      metricRelabelings: []
+      relabelings: []
+      jobLabel: ""
+      interval: ""
+      honorLabels: false
+      scrapeTimeout: ""
+      honorTimestamps: false
+      enableHttp2: false
+      followRedirects: false
+      additionalLabels: {}
+      namespace: ""
+      namespaceSelector: {}
+    prometheusRule:
+      enabled: false
+      apiVersion: "monitoring.coreos.com/v1"
+      additionalLabels: {}
+      namespace: ""
+
+  otlp:
+    enabled: false
+    addEntryPointsLabels:
+    addRoutersLabels:
+    addServicesLabels:
+    explicitBoundaries: []
+    pushInterval: ""
+    serviceName:
+    http:
+      enabled: false
+      endpoint: ""
+      headers: {}
+      tls:
+        ca: ""
+        cert: ""
+        key: ""
+        insecureSkipVerify:
+    grpc:
+      enabled: false
+      endpoint: ""
+      insecure: false
+      tls:
+        ca: ""
+        cert: ""
+        key: ""
+        insecureSkipVerify:
+    resourceAttributes: {}
+
+ocsp:
+  enabled: false
+  responderOverrides: {}
+
+tracing:
+  addInternals: false
+  serviceName:
+  resourceAttributes: {}
+  capturedRequestHeaders: []
+  capturedResponseHeaders: []
+  safeQueryParams: []
+  sampleRate:
+  otlp:
+    enabled: false
+    http:
+      enabled: false
+      endpoint: ""
+      headers: {}
+      tls:
+        ca: ""
+        cert: ""
+        key: ""
+        insecureSkipVerify:
+    grpc:
+      enabled: false
+      endpoint: ""
+      insecure: false
+      tls:
+        ca: ""
+        cert: ""
+        key: ""
+        insecureSkipVerify:
+
+global:
+  checkNewVersion: true
+  sendAnonymousUsage: false
+  azure:
+    enabled: false
+    images:
+      proxy:
+        image: traefik
+        tag: latest
+        registry: docker.io/library
+      hub:
+        image: traefik-hub
+        tag: latest
+        registry: ghcr.io/traefik
+
+# <-- CHANGED: убираем сломанную подстановку ${printenv $NODE_NAME} —
+# entrypoints.web/websecure.address задаёт wrapper-скрипт в command через kustomize-patch в ArgoCD Application.
+additionalArguments: []
+
+# <-- CHANGED: оставляем только NODE_NAME, удалены невалидные env-переменные cdp-worker-* (имена env нельзя с дефисами)
+env:
+  - name: NODE_NAME
+    valueFrom:
+      fieldRef:
+        fieldPath: spec.nodeName
+
+envFrom: []
+
+ports:
+  traefik:
+    port: 8080
+    hostPort: null
+    hostIP:
+    expose:
+      default: false
+    exposedPort: 8080
+    protocol: TCP
+    observability:
+      metrics:
+      accessLogs:
+      tracing:
+      traceVerbosity:
+  web:
+    asDefault:
+    # <-- CHANGED: port = hostPort при hostNetwork=true, поэтому 80 а не 8000.
+    # securityContext.capabilities.add NET_BIND_SERVICE уже есть, так что
+    # привилегированные порты работают.
+    port: 80
+    expose:
+      default: true
+    exposedPort: 80
+    targetPort:
+    protocol: TCP
+    nodePort:
+    http:
+      redirections:
+        entryPoint: 
+          to: websecure
+          scheme: https
+          permanent: true
+    forwardedHeaders:
+      trustedIPs: []
+      insecure: false
+    proxyProtocol:
+      trustedIPs: []
+      insecure: false
+    transport:
+      respondingTimeouts:
+        readTimeout:
+        writeTimeout:
+        idleTimeout:
+      lifeCycle:
+        requestAcceptGraceTimeout:
+        graceTimeOut:
+      keepAliveMaxRequests:
+      keepAliveMaxTime:
+    observability:
+      metrics:
+      accessLogs:
+      tracing:
+      traceVerbosity:
+  websecure:
+    # <-- CHANGED: 443 вместо 8443 по той же причине (hostNetwork).
+    port: 443
+    hostPort: null
+    containerPort:
+    expose:
+      default: true
+    exposedPort: 443
+    targetPort:
+    protocol: TCP
+    nodePort:
+    appProtocol:
+    allowACMEByPass: false
+    http:
+      encodedCharacters:
+        allowEncodedSlash:
+        allowEncodedBackSlash:
+        allowEncodedNullCharacter:
+        allowEncodedSemicolon:
+        allowEncodedPercent:
+        allowEncodedQuestionMark:
+        allowEncodedHash:
+      maxHeaderBytes:
+      middlewares: []
+      sanitizePath:
+      tls:
+        enabled: true
+        options: ""
+        certResolver: ""
+        domains: []
+    http3:
+      enabled: false
+      advertisedPort:
+    forwardedHeaders:
+      trustedIPs: []
+      insecure: false
+    proxyProtocol:
+      trustedIPs: []
+      insecure: false
+    transport:
+      respondingTimeouts:
+        readTimeout:
+        writeTimeout:
+        idleTimeout:
+      lifeCycle:
+        requestAcceptGraceTimeout:
+        graceTimeOut:
+      keepAliveMaxRequests:
+      keepAliveMaxTime:
+    observability:
+      metrics:
+      accessLogs:
+      tracing:
+      traceVerbosity:
+  metrics:
+    port: 9101
+    expose:
+      default: false
+    exposedPort: 9101
+    protocol: TCP
+    observability:
+      metrics:
+      accessLogs:
+      tracing:
+      traceVerbosity:
+
+tlsOptions: {}
+tlsStore: {}
+
+# <-- CHANGED: LoadBalancer не нужен при hostNetwork+bind на IP ноды.
+# Оставляем ClusterIP чтобы внутрикластерные ingress ресурсы могли получить publishedService
+# для поля status.loadBalancer (нужно для external-dns и т.п.). Если совсем не нужно — поставь service.enabled: false.
+service:
+  enabled: true
+  single: true
+  type: ClusterIP
+  annotations: {}
+  annotationsTCP: {}
+  annotationsUDP: {}
+  labels: {}
+  spec: {}
+  loadBalancerSourceRanges: []
+  externalIPs: []
+  additionalServices: {}
+
+autoscaling:
+  enabled: false
+  minReplicas:
+  maxReplicas:
+  metrics: []
+  behavior: {}
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: "{{ template \"traefik.fullname\" . }}"
+
+persistence:
+  enabled: false
+  name: data
+  existingClaim: ""
+  accessMode: ReadWriteOnce
+  size: 128Mi
+  storageClass:
+  volumeName: ""
+  path: /data
+  annotations: {}
+  subPath: ""
+
+certificatesResolvers: {}
+
+hostNetwork: true
+
+rbac:
+  enabled: true
+  namespaced: false
+  aggregateTo: []
+
+podSecurityPolicy:
+  enabled: false
+
+serviceAccount:
+  name: ""
+
+serviceAccountAnnotations: {}
+
+resources: {}
+
+# <-- CHANGED: pin'им DaemonSet только на ноды, для которых есть маппинг в
+# configmap node-external-ips. На других нодах wrapper упадёт с "no IP mapping".
+
+nodeSelector: {}
+
+topologySpreadConstraints: []
+
+priorityClassName: ""
+
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop: [ALL]
+    add: ["NET_BIND_SERVICE"]
+  readOnlyRootFilesystem: true
+
+podSecurityContext:
+  runAsUser: 0
+  runAsGroup: 0
+  runAsNonRoot: false
+
+extraObjects: []
+
+namespaceOverride: ""
+instanceLabelOverride: ""
+versionOverride: ""
+nameOverride: ""
+fullnameOverride: ""
+
+hub:
+  token: ""
+  tokenMountPath: "/etc/secrets"
+  offline:
+  namespaces: []
+  apimanagement:
+    enabled: false
+    admission:
+      listenAddr: ""
+      secretName: "hub-agent-cert"
+      selfManagedCertificate: false
+      customWebhookCertificate: {}
+      restartOnCertificateChange: true
+      annotations: {}
+    openApi:
+      validateRequestMethodAndPath: false
+  mcpgateway:
+    enabled: false
+    maxRequestBodySize:
+  aigateway:
+    enabled: false
+    maxRequestBodySize:
+  providers:
+    consulCatalogEnterprise:
+      enabled: false
+      cache: false
+      connectAware: false
+      connectByDefault: false
+      constraints: ""
+      defaultRule: "Host(`{{ normalize .Name }}`)"
+      endpoint:
+        address: ""
+        datacenter: ""
+        endpointWaitTime: 0
+        httpauth:
+          password: ""
+          username: ""
+        scheme: ""
+        tls:
+          ca: ""
+          cert: ""
+          insecureSkipVerify: false
+          key: ""
+        token: ""
+      exposedByDefault: true
+      namespaces: ""
+      partition: ""
+      prefix: "traefik"
+      refreshInterval: 15
+      requireConsistent: false
+      serviceName: "traefik"
+      stale: false
+      strictChecks: "passing, warning"
+      watch: false
+    microcks:
+      enabled: false
+      auth:
+        clientId: ""
+        clientSecret: ""
+        endpoint: ""
+        token: ""
+      endpoint: ""
+      pollInterval: 30
+      pollTimeout: 5
+      tls:
+        ca: ""
+        cert: ""
+        insecureSkipVerify: false
+        key: ""
+  redis:
+    cluster:
+    database:
+    endpoints: ""
+    username: ""
+    password: ""
+    sentinel:
+      masterset: ""
+      username: ""
+      password: ""
+    timeout: ""
+    tls:
+      ca: ""
+      cert: ""
+      key: ""
+      insecureSkipVerify: false
+  sendlogs:
+  tracing:
+    additionalTraceHeaders:
+      enabled: false
+      traceContext:
+        parentId: ""
+        traceId: ""
+        traceParent: ""
+        traceState: ""
+  pluginRegistry:
+    sources: {}
+
+oci_meta:
+  enabled: false
+  repo: traefik
+  images:
+    proxy:
+      image: traefik
+      tag: latest
+    hub:
+      image: traefik-hub
+      tag: latest
+
+offering_version: ""
+
+enabled: true

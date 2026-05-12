@@ -187,3 +187,28 @@ echo ""
 log_info "The control plane node has been configured as a worker node."
 log_info "You can now deploy workloads to this cluster."
 echo ""
+
+echo "Installing HELM..."
+# Download the Helm installation script
+curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
+
+# Give it execution permissions
+chmod 700 get_helm.sh
+
+# Run the script
+./get_helm.sh
+
+# Verify the installation
+helm version
+
+# Clean up
+rm get_helm.sh
+
+
+#### TO DO
+
+curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash
+sudo mv kustomize /usr/local/bin/
+
+kubectl create ns ingress-traefik
+

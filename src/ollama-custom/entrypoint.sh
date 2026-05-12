@@ -39,12 +39,12 @@ fi
 
 # TEXT MODE: Check if model exists, if not pull it
 # # COMMENTED FOR VISION TESTING - uncomment to restore text mode
-if ! ollama list | grep -q "llama3.1"; then
-   echo "Model llama3.1 not found. Pulling..."
-   ollama pull llama3.1 &
-   echo "Model llama3.1 pulled in background!"
+if ! ollama list | grep -q "phi3"; then
+   echo "Model phi3 not found. Pulling..."
+   ollama pull phi3 &
+   echo "Model phi3 pulled in background!"
 else
-   echo "Model llama3.1 already exists."
+   echo "Model phi3 already exists."
 fi
 # COMMENTED FOR VISION TESTING - uncomment to restore text mode
 # if ! ollama list | grep -q "mistral"; then

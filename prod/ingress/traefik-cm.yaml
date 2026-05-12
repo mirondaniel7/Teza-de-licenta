@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: node-external-ips
+  namespace: ingress-traefik
+data:
+  utm-teza.ipv4: "0.0.0.0"

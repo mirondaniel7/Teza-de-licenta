@@ -1,9 +1,7 @@
-
 apiVersion: v1
 kind: Namespace
 metadata:
   name: online-boutique
- 
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -37,9 +35,7 @@ spec:
   ports:
     - port: 6379
       targetPort: 6379
-
 ---
-
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -57,7 +53,7 @@ spec:
     spec:
       containers:
         - name: productcatalogservice
-          image: your-registry/productcatalogservice:latest
+          image: mirondaniel7/productcatalogservice:latest
           ports:
             - containerPort: 3550
           env:
@@ -77,9 +73,7 @@ spec:
   ports:
     - port: 3550
       targetPort: 3550
-
 ---
-
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -97,7 +91,7 @@ spec:
     spec:
       containers:
         - name: emailservice
-          image: your-registry/emailservice:latest
+          image: mirondaniel7/emailservice:latest
           ports:
             - containerPort: 8080
           env:
@@ -117,9 +111,7 @@ spec:
   ports:
     - port: 8080
       targetPort: 8080
-
 ---
-
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -137,7 +129,7 @@ spec:
     spec:
       containers:
         - name: recommendationservice
-          image: your-registry/recommendationservice:latest
+          image: mirondaniel7/recommendationservice:latest
           ports:
             - containerPort: 8080
           env:
@@ -159,9 +151,7 @@ spec:
   ports:
     - port: 8080
       targetPort: 8080
-
 ---
-
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -179,7 +169,7 @@ spec:
     spec:
       containers:
         - name: paymentservice
-          image: your-registry/paymentservice:latest
+          image: mirondaniel7/paymentservice:latest
           ports:
             - containerPort: 50051
           env:
@@ -199,7 +189,6 @@ spec:
   ports:
     - port: 50051
       targetPort: 50051
-
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -218,7 +207,7 @@ spec:
     spec:
       containers:
         - name: currencyservice
-          image: your-registry/currencyservice:latest
+          image: mirondaniel7/currencyservice:latest
           ports:
             - containerPort: 7000
           env:
@@ -238,9 +227,7 @@ spec:
   ports:
     - port: 7000
       targetPort: 7000
-
 ---
-
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -258,7 +245,7 @@ spec:
     spec:
       containers:
         - name: shippingservice
-          image: your-registry/shippingservice:latest
+          image: mirondaniel7/shippingservice:latest
           ports:
             - containerPort: 50051
           env:
@@ -278,8 +265,6 @@ spec:
   ports:
     - port: 50051
       targetPort: 50051
-
-
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -298,7 +283,7 @@ spec:
     spec:
       containers:
         - name: adservice
-          image: your-registry/adservice:latest
+          image: mirondaniel7/adservice:latest
           ports:
             - containerPort: 9555
           env:
@@ -316,7 +301,6 @@ spec:
   ports:
     - port: 9555
       targetPort: 9555
-
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -335,7 +319,7 @@ spec:
     spec:
       containers:
         - name: cartservice
-          image: your-registry/cartservice:latest
+          image: mirondaniel7/cartservice:latest
           ports:
             - containerPort: 7070
           env:
@@ -353,7 +337,6 @@ spec:
   ports:
     - port: 7070
       targetPort: 7070
-
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -363,9 +346,10 @@ metadata:
 spec:
   accessModes:
     - ReadWriteOnce
+  storageClassName: standard
   resources:
     requests:
-      storage: 20Gi
+      storage: 10Gi
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -384,7 +368,7 @@ spec:
     spec:
       containers:
         - name: ollama
-          image: your-registry/ollama-custom:latest
+          image: mirondaniel7/ollama-custom:latest
           ports:
             - containerPort: 11434
           env:
@@ -401,13 +385,13 @@ spec:
               mountPath: /root/.ollama
           livenessProbe:
             exec:
-              command: ["sh", "-c", "ollama list > /dev/null 2>&1"]
+              command: ["sh", "-c", "ollama list > /dev/null 2>&1 || exit 1"]
             initialDelaySeconds: 60
             periodSeconds: 10
             failureThreshold: 30
           readinessProbe:
             exec:
-              command: ["sh", "-c", "ollama list > /dev/null 2>&1"]
+              command: ["sh", "-c", "ollama list > /dev/null 2>&1 || exit 1"]
             initialDelaySeconds: 60
             periodSeconds: 10
             failureThreshold: 30
@@ -445,7 +429,7 @@ spec:
     spec:
       containers:
         - name: ai-inference
-          image: your-registry/ollama-connect:latest
+          image: mirondaniel7/ollama-connect:latest
           ports:
             - containerPort: 8000
           env:
@@ -483,9 +467,7 @@ spec:
   ports:
     - port: 8000
       targetPort: 8000
-
 ---
-
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -503,7 +485,7 @@ spec:
     spec:
       containers:
         - name: shoppingassistantservice
-          image: your-registry/shoppingassistantservice:latest
+          image: mirondaniel7/shoppingassistantservice:latest
           ports:
             - containerPort: 80
           env:
@@ -525,9 +507,7 @@ spec:
   ports:
     - port: 80
       targetPort: 80
-
 ---
-
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -545,7 +525,7 @@ spec:
     spec:
       containers:
         - name: checkoutservice
-          image: your-registry/checkoutservice:latest
+          image: mirondaniel7/checkoutservice:latest
           ports:
             - containerPort: 5050
           env:
@@ -575,7 +555,6 @@ spec:
   ports:
     - port: 5050
       targetPort: 5050
-
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -594,7 +573,7 @@ spec:
     spec:
       containers:
         - name: frontend
-          image: your-registry/frontend:latest
+          image: mirondaniel7/frontend:latest
           ports:
             - containerPort: 8080
           env:
@@ -632,7 +611,6 @@ spec:
   ports:
     - port: 8080
       targetPort: 8080
-
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -651,7 +629,7 @@ spec:
     spec:
       containers:
         - name: chat-ui
-          image: your-registry/chat-ollama:latest
+          image: mirondaniel7/chat-ollama:latest
           ports:
             - containerPort: 8501
           env:
@@ -669,7 +647,6 @@ spec:
   ports:
     - port: 8501
       targetPort: 8501
-
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -688,7 +665,7 @@ spec:
     spec:
       containers:
         - name: loadgenerator
-          image: your-registry/loadgenerator:latest
+          image: mirondaniel7/loadgenerator:latest
           env:
             - name: FRONTEND_ADDR
               value: "frontend:8080"
