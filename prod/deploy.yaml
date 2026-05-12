@@ -436,7 +436,7 @@ spec:
             - name: OLLAMA_URL
               value: "http://ollama:11434"
             - name: OLLAMA_MODEL
-              value: "phi3"
+              value: "phi4"
             - name: OLLAMA_MAX_TOKENS
               value: "4096"
             - name: OLLAMA_TIMEOUT
