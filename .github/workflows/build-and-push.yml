@@ -48,11 +48,22 @@ jobs:
         id: format_username
         run: echo "username=$(echo '${{ vars.DOCKER_USERNAME }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
 
+      - name: Set Paths
+        id: paths
+        run: |
+          if [[ "${{ matrix.service }}" == "cartservice" ]]; then
+            echo "context=./src/${{ matrix.service }}/src" >> $GITHUB_OUTPUT
+            echo "file=./src/${{ matrix.service }}/src/Dockerfile" >> $GITHUB_OUTPUT
+          else
+            echo "context=./src/${{ matrix.service }}" >> $GITHUB_OUTPUT
+            echo "file=./src/${{ matrix.service }}/Dockerfile" >> $GITHUB_OUTPUT
+          fi
+
       - name: Build and push ${{ matrix.service }}
         uses: docker/build-push-action@v5
         with:
-          context: ./src/${{ matrix.service }}
-          file: ./src/${{ matrix.service }}/Dockerfile
+          context: ${{ steps.paths.outputs.context }}
+          file: ${{ steps.paths.outputs.file }}
           push: true
           tags: |
             ${{ steps.format_username.outputs.username }}/${{ matrix.service }}:latest
