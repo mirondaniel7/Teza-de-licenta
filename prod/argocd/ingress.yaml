@@ -32,11 +32,16 @@ metadata:
   name: argocd-server
   namespace: argocd
   annotations:
-    ingress.kubernetes.io/ssl-redirect: "false"
+    #ingress.kubernetes.io/ssl-redirect: "false"
+    cert-manager.io/cluster-issuer: letsencrypt
 spec:
   ingressClassName: traefik
+  tls:
+    - hosts:
+        - sync.mgaru.dev
+      secretName: sync-server-tls
   rules:
-    - host: argocd.local
+    - host: sync.mgaru.dev
       http:
         paths:
           - path: /

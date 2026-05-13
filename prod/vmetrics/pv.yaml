@@ -1,0 +1,37 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pv-vmetrics-grafana
+spec:
+  capacity:
+    storage: 5Gi
+  accessModes:
+    - ReadWriteOnce
+  volumeMode: Filesystem
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: manual
+  hostPath:
+    path: /data/pv/vmetrics-grafana
+    type: DirectoryOrCreate
+  claimRef:
+    namespace: monitoring
+    name: vmetrics-grafana
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pv-vmsingle-vmetrics-victoria-metrics-k8s-stack
+spec:
+  capacity:
+    storage: 50Gi
+  accessModes:
+    - ReadWriteOnce
+  volumeMode: Filesystem
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: lh-local
+  hostPath:
+    path: /data/pv/vmsingle-vmetrics-victoria-metrics-k8s-stack
+    type: DirectoryOrCreate
+  claimRef:
+    namespace: monitoring
+    name: vmsingle-vmetrics-victoria-metrics-k8s-stack

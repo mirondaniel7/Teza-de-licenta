@@ -1,0 +1,26 @@
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMPodScrape
+metadata:
+  name: frontend-pod-metrics
+  namespace: online-boutique
+spec:
+  selector:
+    matchLabels:
+      app: frontend
+  podMetricsEndpoints:
+    - path: /metrics
+      targetPort: 8080
+---
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMPodScrape
+metadata:
+  name: adservice-pod-metrics
+  namespace: online-boutique
+spec:
+  selector:
+    matchLabels:
+      app: adservice
+  podMetricsEndpoints:
+    - path: /metrics
+      targetPort: 9555
+  

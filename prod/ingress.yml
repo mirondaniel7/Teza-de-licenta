@@ -1,13 +1,18 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: online-boutique-ingress
+  name: shop-ingress
   namespace: online-boutique
   annotations:
-    nginx.ingress.kubernetes.io/ssl-redirect: "false" # Prevent 301 redirects to HTTPS
+    cert-manager.io/cluster-issuer: letsencrypt
 spec:
+  ingressClassName: traefik
+  tls:
+    - hosts:
+        - shop.mgaru.dev
+      secretName: shop-server-tls
   rules:
-    - host: shop.local
+    - host: shop.mgaru.dev
       http:
         paths:
           - path: /
@@ -17,7 +22,22 @@ spec:
                 name: frontend
                 port:
                   number: 8080
-    - host: chat.local
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: chat-ingress
+  namespace: online-boutique
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts:
+        - chat.mgaru.dev
+      secretName: chat-server-tls
+  rules:
+    - host: chat.mgaru.dev
       http:
         paths:
           - path: /
