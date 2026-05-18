@@ -100,26 +100,51 @@ api:
 
 ingressRoute:
   dashboard:
-    enabled: false
-    annotations: {}
+    # -- Create an IngressRoute for the dashboard
+    enabled: true
+    # -- Additional ingressRoute annotations (e.g. for kubernetes.io/ingress.class)
+    annotations: 
+      cert-manager.io/cluster-issuer: letsencrypt
+    # -- Additional ingressRoute labels (e.g. for filtering IngressRoute by custom labels)
     labels: {}
-    matchRule: PathPrefix(`/dashboard`) || PathPrefix(`/api`)
+    # -- The router match rule used for the dashboard ingressRoute
+    matchRule: Host(`ingress.mgaru.dev`) && (PathPrefix(`/dashboard`) || PathPrefix(`/api`) || Path(`/`))
+    # -- The internal service used for the dashboard ingressRoute
+    # @default -- api@internal
     services:
       - name: api@internal
         kind: TraefikService
-    entryPoints: ["traefik"]
-    middlewares: []
-    tls: {}
+    # -- Specify the allowed entrypoints to use for the dashboard ingress route, (e.g. traefik, web, websecure).
+    # By default, it's using traefik entrypoint, which is not exposed.
+    # /!\ Do not expose your dashboard without any protection over the internet /!\
+    entryPoints: ["websecure"]
+    # -- Additional ingressRoute middlewares (e.g. for authentication)
+    middlewares:
+      - name: dashboard-redirect
+      - name: traefik-auth-middleware
+    # -- TLS options (e.g. secret containing certificate)
+    tls:
+      secretName: traefik-tls # Adjust this secret name if you have a specific cert for traefik.mgaru.dev
   healthcheck:
+    # -- Create an IngressRoute for the healthcheck probe
     enabled: false
+    # -- Additional ingressRoute annotations (e.g. for kubernetes.io/ingress.class)
     annotations: {}
+    # -- Additional ingressRoute labels (e.g. for filtering IngressRoute by custom labels)
     labels: {}
+    # -- The router match rule used for the healthcheck ingressRoute
     matchRule: PathPrefix(`/ping`)
+    # -- The internal service used for the healthcheck ingressRoute
+    # @default -- ping@internal
     services:
       - name: ping@internal
         kind: TraefikService
+    # -- Specify the allowed entrypoints to use for the healthcheck ingress route, (e.g. traefik, web, websecure).
+    # By default, it's using traefik entrypoint, which is not exposed.
     entryPoints: ["traefik"]
+    # -- Additional ingressRoute middlewares (e.g. for authentication)
     middlewares: []
+    # -- TLS options (e.g. secret containing certificate)
     tls: {}
 
 updateStrategy:
@@ -615,7 +640,55 @@ podSecurityContext:
   runAsGroup: 0
   runAsNonRoot: false
 
-extraObjects: []
+extraObjects: 
+  - apiVersion: v1
+    kind: Secret
+    metadata:
+      name: secret-auth
+    type: Opaque
+    stringData:
+      # Generate a new password using: htpasswd -nb yourusername yourpassword
+      # Or bcrypt (recommended): htpasswd -nB yourusername yourpassword
+      # Below is the default for admin:admin
+      admin: "nl2k0DfSAv]2"
+  - apiVersion: v1
+    kind: Secret
+    metadata:
+      name: traefik-auth
+    type: Opaque
+    stringData:
+      # Generate a new password using: htpasswd -nb yourusername yourpassword
+      # Or bcrypt (recommended): htpasswd -nB yourusername yourpassword
+      # Below is the default for admin:admin
+      users: |
+        admin:$apr1$7B82uM1r$7nUyrhJeNm5G6bo8aotTD0
+  - apiVersion: traefik.io/v1alpha1
+    kind: Middleware
+    metadata:
+      name: traefik-auth-middleware
+    spec:
+      basicAuth:
+        secret: traefik-auth
+  - apiVersion: traefik.io/v1alpha1
+    kind: Middleware
+    metadata:
+      name: dashboard-redirect
+    spec:
+      redirectRegex:
+        regex: "^https?://([^/]+)/?$"
+        replacement: "https://${1}/dashboard/"
+  - apiVersion: cert-manager.io/v1
+    kind: Certificate
+    metadata:
+      name: traefik-dashboard-cert
+    spec:
+      secretName: traefik-tls
+      issuerRef:
+        name: letsencrypt
+        kind: ClusterIssuer
+      dnsNames:
+      - ingress.mgaru.dev
+
 
 namespaceOverride: ""
 instanceLabelOverride: ""
