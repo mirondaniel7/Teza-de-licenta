@@ -7,46 +7,46 @@ resources:
 images:
 - name: mirondaniel7/adservice
   newName: mirondaniel7/adservice
-  newTag: ae9f67c3853fc00c237c0734d6bb0fa3ca38d67f-25817262443
+  newTag: c1bfd12eb00f823c0c7f917a4c15d762ddc36587-26020482494
 - name: mirondaniel7/cartservice
   newName: mirondaniel7/cartservice
-  newTag: ae9f67c3853fc00c237c0734d6bb0fa3ca38d67f-25817262443
+  newTag: c1bfd12eb00f823c0c7f917a4c15d762ddc36587-26020482494
 - name: mirondaniel7/chat-ollama
   newName: mirondaniel7/chat-ollama
-  newTag: ae9f67c3853fc00c237c0734d6bb0fa3ca38d67f-25817262443
+  newTag: c1bfd12eb00f823c0c7f917a4c15d762ddc36587-26020482494
 - name: mirondaniel7/checkoutservice
   newName: mirondaniel7/checkoutservice
-  newTag: ae9f67c3853fc00c237c0734d6bb0fa3ca38d67f-25817262443
+  newTag: c1bfd12eb00f823c0c7f917a4c15d762ddc36587-26020482494
 - name: mirondaniel7/currencyservice
   newName: mirondaniel7/currencyservice
-  newTag: ae9f67c3853fc00c237c0734d6bb0fa3ca38d67f-25817262443
+  newTag: c1bfd12eb00f823c0c7f917a4c15d762ddc36587-26020482494
 - name: mirondaniel7/emailservice
   newName: mirondaniel7/emailservice
-  newTag: ae9f67c3853fc00c237c0734d6bb0fa3ca38d67f-25817262443
+  newTag: c1bfd12eb00f823c0c7f917a4c15d762ddc36587-26020482494
 - name: mirondaniel7/frontend
   newName: mirondaniel7/frontend
-  newTag: ae9f67c3853fc00c237c0734d6bb0fa3ca38d67f-25817262443
+  newTag: c1bfd12eb00f823c0c7f917a4c15d762ddc36587-26020482494
 - name: mirondaniel7/loadgenerator
   newName: mirondaniel7/loadgenerator
-  newTag: ae9f67c3853fc00c237c0734d6bb0fa3ca38d67f-25817262443
+  newTag: c1bfd12eb00f823c0c7f917a4c15d762ddc36587-26020482494
 - name: mirondaniel7/ollama-connect
   newName: mirondaniel7/ollama-connect
-  newTag: ae9f67c3853fc00c237c0734d6bb0fa3ca38d67f-25817262443
+  newTag: c1bfd12eb00f823c0c7f917a4c15d762ddc36587-26020482494
 - name: mirondaniel7/ollama-custom
   newName: mirondaniel7/ollama-custom
-  newTag: ae9f67c3853fc00c237c0734d6bb0fa3ca38d67f-25817262443
+  newTag: c1bfd12eb00f823c0c7f917a4c15d762ddc36587-26020482494
 - name: mirondaniel7/paymentservice
   newName: mirondaniel7/paymentservice
-  newTag: ae9f67c3853fc00c237c0734d6bb0fa3ca38d67f-25817262443
+  newTag: c1bfd12eb00f823c0c7f917a4c15d762ddc36587-26020482494
 - name: mirondaniel7/productcatalogservice
   newName: mirondaniel7/productcatalogservice
-  newTag: ae9f67c3853fc00c237c0734d6bb0fa3ca38d67f-25817262443
+  newTag: c1bfd12eb00f823c0c7f917a4c15d762ddc36587-26020482494
 - name: mirondaniel7/recommendationservice
   newName: mirondaniel7/recommendationservice
-  newTag: ae9f67c3853fc00c237c0734d6bb0fa3ca38d67f-25817262443
+  newTag: c1bfd12eb00f823c0c7f917a4c15d762ddc36587-26020482494
 - name: mirondaniel7/shippingservice
   newName: mirondaniel7/shippingservice
-  newTag: ae9f67c3853fc00c237c0734d6bb0fa3ca38d67f-25817262443
+  newTag: c1bfd12eb00f823c0c7f917a4c15d762ddc36587-26020482494
 - name: mirondaniel7/shoppingassistantservice
   newName: mirondaniel7/shoppingassistantservice
-  newTag: ae9f67c3853fc00c237c0734d6bb0fa3ca38d67f-25817262443
+  newTag: c1bfd12eb00f823c0c7f917a4c15d762ddc36587-26020482494
